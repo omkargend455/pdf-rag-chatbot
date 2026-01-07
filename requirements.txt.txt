@@ -1,0 +1,20 @@
+streamlit>=1.32.0
+
+# LangChain core + integrations
+langchain>=0.2.10
+langchain-community>=0.2.10
+langchain-text-splitters>=0.2.1
+langchain-huggingface>=0.0.3
+langchain-groq>=0.1.5
+
+# PDF processing
+pypdf>=4.2.0
+
+# Embeddings
+sentence-transformers>=2.6.1
+
+# Vector database
+faiss-cpu>=1.8.0
+
+# Optional but useful (env management)
+python-dotenv>=1.0.1
