@@ -25,7 +25,7 @@ A chat-based PDF Question–Answering application built using:
 ## ▶ Run Locally
 
 ```bash
-git clone https://github.com/<your-username>/pdf-rag-chatbot.git
+git clone https://github.com/omkargend455/pdf-rag-chatbot.git
 cd pdf-rag-chatbot
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
