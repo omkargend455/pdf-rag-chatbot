@@ -120,6 +120,7 @@ def answer_question_with_rag(
             "page": page_number,
             "content": doc.page_content,
             "retrieval_score": round(confidence, 2),
+            "source": doc.metadata.get("source", "Unknown"),
         })
 
     context = "\n\n".join(s["content"] for s in sources)
@@ -137,17 +138,20 @@ def answer_question_with_rag(
     # FIX: use textwrap.dedent so indentation inside the function body
     # does not bleed into the prompt string sent to the model.
     prompt = textwrap.dedent(f"""
-        You are a document-grounded assistant.
+        You are a knowledgeable and patient tutor helping someone understand
+        a document they have uploaded.
 
-        STRICT RULES:
-        1. Answer ONLY using the provided document context.
-        2. Extract the most direct definition from the document.
-        3. Do NOT summarize broadly or add external examples.
-        4. If the answer is not explicitly defined, say:
-           "The document does not explicitly define this."
-        5. Prefer the sentence that directly defines the concept.
+        RULES:
+        1. Answer using ONLY the provided document context — no outside knowledge.
+        2. Write a clear explanation of 3–6 sentences. Avoid one-line answers
+           unless the question is genuinely trivial (e.g. "What year is mentioned?").
+        3. Where helpful, include a simple concrete example drawn from the context.
+        4. Do NOT use bullet points as your primary format — write in flowing prose.
+        5. If the context does not contain enough information to answer, say exactly:
+           "The document does not contain enough information to answer this."
+        6. Do not repeat the question back to the user.
 
-        Chat History:
+        Chat History (most recent exchanges):
         {history_text}
 
         Document Context:
@@ -156,11 +160,12 @@ def answer_question_with_rag(
         User Question:
         {query}
 
-        After answering, rate your confidence from 0 to 1.
+        After your explanation, rate your confidence from 0.0 to 1.0 based on
+        how directly the context supports your answer.
 
-        Respond strictly in JSON:
+        Respond strictly in this JSON format (no markdown fences):
         {{
-          "answer": "...",
+          "answer": "Your explanation here.",
           "llm_confidence": 0.0
         }}
     """).strip()
