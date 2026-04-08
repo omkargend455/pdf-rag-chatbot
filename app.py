@@ -72,7 +72,10 @@ with st.sidebar:
     if st.session_state.pdf_summaries:
         for file_name, summary in st.session_state.pdf_summaries.items():
             st.markdown(f"### 📄 {file_name}")
-            st.write(summary)
+            st.markdown(
+                f'<p style="text-align: justify;">{summary}</p>',
+                unsafe_allow_html=True,
+            )
             st.divider()
     else:
         st.info("Upload PDFs to see summaries here.")
@@ -229,7 +232,10 @@ if user_query:
                 chat_history=st.session_state.chat_history,
             )
 
-        st.write(result["answer"])
+        st.markdown(
+                f'<p style="text-align: justify;">{result["answer"]}</p>',
+                unsafe_allow_html=True,
+            )
 
         st.progress(float(result["confidence"]))
         st.caption(f"Confidence Score: {result['confidence']}")
