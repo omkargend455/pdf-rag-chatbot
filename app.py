@@ -209,44 +209,106 @@ if not st.session_state.vector_store:
     st.warning("Build the FAISS index first.")
     st.stop()
 
-# Render chat history
-for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+# ----------------- CHAT STYLES -----------------
+st.markdown("""
+<style>
+.chat-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0 24px 0;
+}
+.chat-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+.chat-row.user  { flex-direction: row-reverse; }
+.chat-row.assistant { flex-direction: row; }
 
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.avatar.user      { background: #4f4f4f; }
+.avatar.assistant { background: #2a6b4f; }
+
+.bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.6;
+    font-size: 15px;
+    text-align: justify;
+}
+.bubble.user {
+    background: #2b2b2b;
+    border-bottom-right-radius: 4px;
+    color: #e8e8e8;
+}
+.bubble.assistant {
+    background: #1e1e1e;
+    border-bottom-left-radius: 4px;
+    color: #d4d4d4;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+def render_message(role: str, content: str):
+    """Render a single chat bubble with avatar."""
+    avatar = "🧑" if role == "user" else "🤖"
+    escaped = content.replace("<", "&lt;").replace(">", "&gt;")
+    st.markdown(f"""
+    <div class="chat-row {role}">
+        <div class="avatar {role}">{avatar}</div>
+        <div class="bubble {role}">{escaped}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# Render existing chat history
+st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+for msg in st.session_state.chat_history:
+    render_message(msg["role"], msg["content"])
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ----------------- CHAT INPUT -----------------
 user_query = st.chat_input("Ask a question about the PDFs")
 
 if user_query:
-    # Append user message first so it appears in the UI immediately
     st.session_state.chat_history.append({"role": "user", "content": user_query})
-    with st.chat_message("user"):
-        st.write(user_query)
+    render_message("user", user_query)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            # NOTE: answer_question_with_rag already strips the last history
-            # entry (the current user turn) to avoid prompt duplication.
-            result = answer_question_with_rag(
-                st.session_state.vector_store,
-                user_query,
-                chat_history=st.session_state.chat_history,
+    with st.spinner("Thinking..."):
+        # NOTE: answer_question_with_rag strips the last history entry
+        # (the current user turn) to avoid prompt duplication.
+        result = answer_question_with_rag(
+            st.session_state.vector_store,
+            user_query,
+            chat_history=st.session_state.chat_history,
+        )
+
+    render_message("assistant", result["answer"])
+
+    st.progress(float(result["confidence"]))
+    st.caption(f"Confidence Score: {result['confidence']}")
+
+    with st.expander("📚 Sources"):
+        for src in result["sources"]:
+            st.markdown(
+                f"**{src['source']} | Page {src['page']} | Retrieval Score: {src['retrieval_score']}**"
             )
-
-        st.markdown(
-                f'<p style="text-align: justify;">{result["answer"]}</p>',
-                unsafe_allow_html=True,
-            )
-
-        st.progress(float(result["confidence"]))
-        st.caption(f"Confidence Score: {result['confidence']}")
-
-        with st.expander("📚 Sources"):
-            for src in result["sources"]:
-                st.markdown(
-                    f"**{src['source']} | Page {src['page']} | Retrieval Score: {src['retrieval_score']}**"
-                )
-                st.write(src["content"][:500])
-                st.divider()
+            st.write(src["content"][:500])
+            st.divider()
 
     st.session_state.chat_history.append(
         {"role": "assistant", "content": result["answer"]}
